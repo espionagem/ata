@@ -136,5 +136,169 @@ local function getRefinedPresets()
     }
 end
 
--- As funções de aplicação e interface permanecem as mesmas
--- Basta substituir a função `getRefinedPresets` pelo código acima para aplicar as mudanças.
+-- Função para aplicar reflexos no chão
+local function applyGroundReflectivity(reflectivity)
+    for _, part in pairs(workspace:GetDescendants()) do
+        if part:IsA("BasePart") and not part:IsA("MeshPart") and part.Material == Enum.Material.Concrete then
+            part.Reflectance = reflectivity
+        end
+    end
+end
+
+-- Função para aplicar os presets refinados
+local function applyRefinedPreset(presetName)
+    local presets = getRefinedPresets()
+    local preset = presets[presetName]
+
+    if not preset then
+        warn("Preset não encontrado: " .. tostring(presetName))
+        return
+    end
+
+    -- Configuração de Lighting
+    local lighting = game:GetService("Lighting")
+    for property, value in pairs(preset.Lighting or {}) do
+        lighting[property] = value
+    end
+
+    -- Remove efeitos antigos
+    for _, effect in pairs(lighting:GetChildren()) do
+        if effect:IsA("PostEffect") then
+            effect:Destroy()
+        end
+    end
+
+    -- Aplica novos efeitos
+    for effectName, properties in pairs(preset.Effects or {}) do
+        local effect = Instance.new(effectName .. "Effect")
+        for prop, value in pairs(properties) do
+            effect[prop] = value
+        end
+        effect.Parent = lighting
+    end
+
+    -- Aplica reflexos no chão
+    if preset.GroundReflectivity then
+        applyGroundReflectivity(preset.GroundReflectivity)
+    end
+end
+
+-- Interface refinada com presets aprimorados
+local function createRefinedUI()
+    local screenGui = Instance.new("ScreenGui", game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"))
+    screenGui.Name = "RefinedVisualEffects"
+
+    local frame = Instance.new("Frame", screenGui)
+    frame.Size = UDim2.new(0, 400, 0, 500)
+    frame.Position = UDim2.new(0.5, -200, 0.5, -250)
+    frame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    frame.BackgroundTransparency = 0
+    frame.BorderSizePixel = 2
+    frame.BorderColor3 = Color3.fromRGB(80, 60, 60)
+
+    local title = Instance.new("TextLabel", frame)
+    title.Size = UDim2.new(1, 0, 0, 50)
+    title.Text = "Refined Visual Effects"
+    title.Font = Enum.Font.Cartoon -- Substitua por fonte gótica personalizada
+    title.TextSize = 26
+```lua
+    title.TextColor3 = Color3.fromRGB(240, 200, 140)
+    title.BackgroundTransparency = 1
+
+    local buttonContainer = Instance.new("Frame", frame)
+    buttonContainer.Size = UDim2.new(1, -20, 1, -70)
+    buttonContainer.Position = UDim2.new(0, 10, 0, 60)
+    buttonContainer.BackgroundTransparency = 1
+
+    local uiListLayout = Instance.new("UIListLayout", buttonContainer)
+    uiListLayout.Padding = UDim.new(0, 10)
+    uiListLayout.FillDirection = Enum.FillDirection.Vertical
+    uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+    local presets = getRefinedPresets()
+    for presetName, _ in pairs(presets) do
+        local button = Instance.new("TextButton", buttonContainer)
+        button.Size = UDim2.new(1, 0, 0, 50)
+        button.Text = presetName
+        button.Font = Enum.Font.Cartoon -- Substitua por fonte gótica personalizada
+        button.TextSize = 18
+        button.TextColor3 = Color3.fromRGB(240, 200, 140)
+        button.BackgroundColor3 = Color3.fromRGB(30, 20, 20)
+        button.BorderSizePixel = 2
+        button.BorderColor3 = Color3.fromRGB(100, 70, 70)
+
+        -- Efeito de hover
+        button.MouseEnter:Connect(function()
+            button.BackgroundColor3 = Color3.fromRGB(40, 30, 30)
+        end)
+        button.MouseLeave:Connect(function()
+            button.BackgroundColor3 = Color3.fromRGB(30, 20, 20)
+        end)
+
+        -- Aplica o preset ao clicar
+        button.MouseButton1Click:Connect(function()
+            applyRefinedPreset(presetName)
+        end)
+    end
+
+    -- Função para deixar o frame arrastável
+    local dragging
+    local dragInput
+    local dragStart
+    local startPos
+
+    local function update(input)
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
+        if dragging and input == dragInput then
+            update(input)
+        end
+    end)
+
+    return screenGui
+end
+
+-- Alternador de visibilidade com hotkey
+local function toggleRefinedUI()
+    local screenGui = createRefinedUI()
+    local uis = game:GetService("UserInputService")
+    local uiVisible = true
+
+    uis.InputBegan:Connect(function(input, gameProcessed)
+        if not gameProcessed and input.KeyCode == Enum.KeyCode.F6 then
+            uiVisible = not uiVisible
+            screenGui.Enabled = uiVisible
+        end
+    end)
+end
+
+-- Inicializa a interface
+toggleRefinedUI()
