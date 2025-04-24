@@ -183,25 +183,26 @@ local function applyRefinedPreset(presetName)
     end
 end
 
--- Interface refinada com presets aprimorados
+-- Interface refinada com visual gótico e funcionalidade arrastável
 local function createRefinedUI()
-    local screenGui = Instance.new("ScreenGui", game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"))
+    local player = game:GetService("Players").LocalPlayer
+    local playerGui = player:WaitForChild("PlayerGui")
+
+    local screenGui = Instance.new("ScreenGui", playerGui)
     screenGui.Name = "RefinedVisualEffects"
 
     local frame = Instance.new("Frame", screenGui)
     frame.Size = UDim2.new(0, 400, 0, 500)
     frame.Position = UDim2.new(0.5, -200, 0.5, -250)
     frame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-    frame.BackgroundTransparency = 0
     frame.BorderSizePixel = 2
     frame.BorderColor3 = Color3.fromRGB(80, 60, 60)
 
     local title = Instance.new("TextLabel", frame)
     title.Size = UDim2.new(1, 0, 0, 50)
     title.Text = "Refined Visual Effects"
-    title.Font = Enum.Font.Cartoon -- Substitua por fonte gótica personalizada
+    title.Font = Enum.Font.GothamBlack -- Estilo próximo ao gótico
     title.TextSize = 26
-```lua
     title.TextColor3 = Color3.fromRGB(240, 200, 140)
     title.BackgroundTransparency = 1
 
@@ -220,7 +221,7 @@ local function createRefinedUI()
         local button = Instance.new("TextButton", buttonContainer)
         button.Size = UDim2.new(1, 0, 0, 50)
         button.Text = presetName
-        button.Font = Enum.Font.Cartoon -- Substitua por fonte gótica personalizada
+        button.Font = Enum.Font.GothamBlack -- Estilo próximo ao gótico
         button.TextSize = 18
         button.TextColor3 = Color3.fromRGB(240, 200, 140)
         button.BackgroundColor3 = Color3.fromRGB(30, 20, 20)
@@ -241,45 +242,32 @@ local function createRefinedUI()
         end)
     end
 
-    -- Função para deixar o frame arrastável
-    local dragging
-    local dragInput
-    local dragStart
-    local startPos
-
-    local function update(input)
-        local delta = input.Position - dragStart
-        frame.Position = UDim2.new(
-            startPos.X.Scale,
-            startPos.X.Offset + delta.X,
-            startPos.Y.Scale,
-            startPos.Y.Offset + delta.Y
-        )
-    end
+    -- Adiciona funcionalidade para arrastar o frame
+    local dragging, dragStart, startPos
 
     frame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
             dragStart = input.Position
             startPos = frame.Position
-
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
         end
     end)
 
     frame.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement then
-            dragInput = input
+        if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(
+                startPos.X.Scale,
+                startPos.X.Offset + delta.X,
+                startPos.Y.Scale,
+                startPos.Y.Offset + delta.Y
+            )
         end
     end)
 
-    game:GetService("UserInputService").InputChanged:Connect(function(input)
-        if dragging and input == dragInput then
-            update(input)
+    game:GetService("UserInputService").InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
         end
     end)
 
